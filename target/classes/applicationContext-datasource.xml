@@ -1,0 +1,132 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<beans xmlns="http://www.springframework.org/schema/beans"
+       xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+       xmlns:tx="http://www.springframework.org/schema/tx"
+       xsi:schemaLocation="http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans.xsd
+     http://www.springframework.org/schema/tx http://www.springframework.org/schema/tx/spring-tx.xsd">
+
+    <bean id="propertyConfigurer" class="org.springframework.beans.factory.config.PropertyPlaceholderConfigurer">
+        <property name="order" value="2"/>
+        <property name="ignoreUnresolvablePlaceholders" value="true"/>
+        <property name="locations">
+            <list>
+                <value>classpath:datasource.properties</value>
+            </list>
+        </property>
+        <property name="fileEncoding" value="utf-8"/>
+    </bean>
+
+
+    <bean id="dataSource" class="com.alibaba.druid.pool.DruidDataSource" destroy-method="close" init-method="init">
+        <!-- 基本属性 url、user、password -->
+        <property name="driverClassName" value="${db.driverClassName}"/>
+        <property name="url" value="${db.url}"/>
+        <property name="username" value="${db.username}"/>
+        <property name="password" value="${db.password}"/>
+
+        <!-- 连接池启动时的初始值 -->
+        <property name="initialSize" value="${db.initialSize}"/>
+        <!-- 连接池的最大值 -->
+        <property name="maxActive" value="${db.maxActive}"/>
+        <!-- 最小空闲值.当空闲的连接数少于阀值时，连接池就会预申请去一些连接，以免洪峰来时来不及申请 -->
+        <property name="minIdle" value="${db.minIdle}"/>
+        <!-- 最大建立连接等待时间。如果超过此时间将接到异常。设为－1表示无限制 -->
+        <property name="maxWait" value="${db.maxWait}"/>
+
+        <!--#给出一条简单的sql语句进行验证 -->
+        <!--<property name="validationQuery" value="select getdate()" />-->
+        <property name="defaultAutoCommit" value="${db.defaultAutoCommit}"/>
+        <!-- 回收被遗弃的（一般是忘了释放的）数据库连接到连接池中 -->
+        <!--<property name="removeAbandoned" value="true" />-->
+        <!-- 数据库连接过多长时间不用将被视为被遗弃而收回连接池中 -->
+        <!--<property name="removeAbandonedTimeout" value="120" />-->
+
+        <!-- #连接的超时时间，默认为半小时。 -->
+        <!--配置一个连接在池中最小生存的时间，单位是毫秒-->
+        <property name="minEvictableIdleTimeMillis" value="300000"/>
+        <!--配置间隔多久才进行一次检测，检测需要关闭的空闲连接，单位是毫秒-->
+        <!--# 失效检查线程运行时间间隔，要小于MySQL默认-->
+        <property name="timeBetweenEvictionRunsMillis" value="60000"/>
+
+        <!--用来检测连接是否有效的sql，要求是一个查询语句。
+            如果validationQuery为null，testOnBorrow、testOnReturn、
+            testWhileIdle都不会其作用-->
+        <!--# 检查连接是否有效-->
+        <property name="testWhileIdle" value="true"/>
+        <!--# 检查连接有效性的SQL语句-->
+        <property name="validationQuery" value="SELECT 'x'"/>
+        <property name="testOnBorrow" value="false"/>
+        <property name="testOnReturn" value="false"/>
+
+        <!-- 打开PSCache，并且指定每个连接上PSCache的大小 -->
+        <property name="poolPreparedStatements" value="true"/>
+        <property name="maxPoolPreparedStatementPerConnectionSize" value="50"/>
+
+        <!-- 配置监控统计拦截的filters，去掉后监控界面sql无法统计 -->
+        <property name="filters" value="stat"/>
+
+        <!-- 每隔1个小时把监控数据输出到日志中 -->
+        <property name="timeBetweenLogStatsMillis" value="86400000"/>
+
+        <!--&lt;!&ndash; 监控统计拦截的filters &ndash;&gt;-->
+        <!--&lt;!&ndash; 并在filters属性中配置了log4j &ndash;&gt;-->
+        <!--<property name="proxyFilters">-->
+        <!--<list>-->
+        <!--<ref bean="stat-filter" />-->
+        <!--<ref bean="log-filter" />-->
+        <!--</list>-->
+        <!--</property>-->
+    </bean>
+
+    <!--&lt;!&ndash; 慢SQL记录&ndash;&gt;-->
+    <!--<bean id="stat-filter" class="com.alibaba.druid.filter.stat.StatFilter">-->
+    <!--<property name="mergeSql" value="true" />-->
+    <!--<property name="slowSqlMillis" value="10000" />-->
+    <!--<property name="logSlowSql" value="true" />-->
+    <!--</bean>-->
+
+    <!--<bean id="log-filter" class="com.alibaba.druid.filter.logging.Log4jFilter">-->
+    <!--&lt;!&ndash; <property name="resultSetLogEnabled" value="false" /> &ndash;&gt;-->
+    <!--&lt;!&ndash; <property name="statementExecutableSqlLogEnable" value="true" /> &ndash;&gt;-->
+    <!--</bean>-->
+
+    <bean id="sqlSessionFactory" class="org.mybatis.spring.SqlSessionFactoryBean">
+        <property name="dataSource" ref="dataSource"/>
+        <property name="mapperLocations" value="classpath*:mappers/"/>
+
+<!--        &lt;!&ndash; 分页插件 &ndash;&gt;-->
+<!--        <property name="plugins">-->
+<!--            <array>-->
+<!--                <bean class="com.github.pagehelper.PageHelper">-->
+<!--                    <property name="properties">-->
+<!--                        <value>-->
+<!--                            dialect=mysql-->
+<!--                        </value>-->
+<!--                    </property>-->
+<!--                </bean>-->
+<!--            </array>-->
+<!--        </property>-->
+
+    </bean>
+
+    <bean name="mapperScannerConfigurer" class="org.mybatis.spring.mapper.MapperScannerConfigurer">
+        <property name="basePackage" value="com.generator.dao"/>
+    </bean>
+
+    <!--需要回滚的方法-->
+    <!--<tx:advice id = "serviceAdvice" transaction-manager="transactionManager">-->
+    <!--<tx:attributes>-->
+    <!--&lt;!&ndash;当代理的service层中方法抛出异常额时候才可以回滚 必须加上rollback-for参数&ndash;&gt;-->
+    <!--<tx:method name="*" propagation="REQUIRED" rollback-for="java.lang.Exception"/>-->
+    <!--&lt;!&ndash;除了上面标识的方法,其他方法全是只读方法&ndash;&gt;-->
+    <!--&lt;!&ndash;<tx:method name="*" read-only="true" />&ndash;&gt;-->
+    <!--</tx:attributes>-->
+    <!--</tx:advice>-->
+    <!--&lt;!&ndash;配置哪些类的方法 需要进行事务管理&ndash;&gt;-->
+    <!--<aop:config proxy-target-class="true">-->
+    <!--<aop:pointcut id="servicePointCut" expression="execution(* com.secretteam.hongdenetwork.partyuniongroup.service.*.*Service.*(..))"/>-->
+    <!--<aop:advisor pointcut-ref="servicePointCut" advice-ref="serviceAdvice"/>-->
+
+    <!--</aop:config>-->
+
+</beans>
